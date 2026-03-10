@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>北太平洋海表盐度对比</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 20px;
+      background: linear-gradient(to bottom, #1e3c72, #2a5298);
+      color: #fff;
+    }
+
+    :root {
+      --slider-width: 1500px;
+    }
+
+    h2,
+    h3 {
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      margin-top: 20px;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+    }
+
+    .panel {
+      width: 50%;
+      text-align: center;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+    }
+
+    img {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    #currentSlider,
+    #predictSlider {
+      width: var(--slider-width);
+      appearance: none;
+      height: 10px;
+      border-radius: 5px;
+      background: #555;
+      margin-top: 10px;
+    }
+
+    #currentSlider.ticks,
+    #predictSlider.ticks {
+      background: repeating-linear-gradient(to right,
+          rgba(255, 255, 255, 0.5) 0,
+          rgba(255, 255, 255, 0.5) 2px,
+          transparent 2px,
+          transparent calc(100% / var(--steps))),
+        linear-gradient(90deg, #4facfe, #00f2fe);
+    }
+
+    #currentSlider::-webkit-slider-thumb,
+    #predictSlider::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #333;
+      cursor: pointer;
+    }
+
+    .label-row {
+      width: var(--slider-width);
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 14px;
+      background-color: rgba(255, 255, 255, 0.12);
+      padding: 5px 12px;
+      border-radius: 10px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 6px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    #monthPicker {
+      margin-top: 20px;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: none;
+      padding: 5px 8px;
+      border-radius: 6px;
+    }
+
+    #modelSelect {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: #a4c6e7;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    #displaySelect {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: #cfe2ff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    /* ================== 曲线图展示 ================== */
+    .curve-container {
+      margin-top: 18px;
+      background-color: rgba(255, 255, 255, 0.08);
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .curve-container h4 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      text-align: center;
+      color: #dbe9ff;
+    }
+
+    .curve-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .curve-grid img {
+      width: 100%;
+      border-radius: 6px;
+      background: #fff;
+      padding: 4px;
+    }
+
+    /* ================== 结论区样式 ================== */
+    .conclusion-section {
+      margin-top: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 25px;
+      border-radius: 12px;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .conclusion-section h2 {
+      color: #00f2fe;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .conclusion-grid {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .conclusion-card {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* 高亮突出 ConvLSTM */
+    .conclusion-card.highlight {
+      border: 1px solid #4facfe;
+      box-shadow: 0 0 15px rgba(79, 172, 254, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #ff7f0e;
+      /* 橙色强调标题 */
+    }
+
+    .highlight .card-header {
+      color: #00f2fe;
+      /* 蓝青色强调最优模型 */
+    }
+
+    .card-body p {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #ddd;
+      margin-bottom: 10px;
+    }
+
+    .card-body strong {
+      color: #fff;
+    }
+
+    .one-liner {
+      background: linear-gradient(90deg, rgba(79, 172, 254, 0.2), transparent);
+      padding: 15px 20px;
+      border-left: 4px solid #4facfe;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 16px;
+    }
+
+    .one-liner i {
+      color: #f1c40f;
+      font-size: 20px;
+    }
+
+    /* ================== 误差与训练指标================== */
+    .metric-container {
+      margin-top: 22px;
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+    }
+
+    .metric-container h4 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      text-align: center;
+      color: #cfdfff;
+    }
+
+    /* 2×2 排列 */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .metric-item {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 6px;
+    }
+
+    .metric-item span {
+      display: block;
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 4px;
+      color: #bcd3ff;
+    }
+
+    .metric-item img {
+      width: 100%;
+      display: block;
+      margin: 0 auto;
+      border-radius: 4px;
+      background: #ffffff;
+      padding: 4px;
+    }
+
+    .metric-item img.conv {
+      width: 67%;
+    }
+
+    .metric-placeholder {
+      width: 92%;
+      height: 110px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #cfdfff;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .metric-note {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #d6e4ff;
+      text-align: center;
+      margin: 6px 0 12px 0;
+      padding: 8px 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+    }
+
+    #metricModelSelect {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: #cfe2ff;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>北太平洋海表盐度对比</h2>
+
+  <h3>现有盐度时间（观测）</h3>
+  <input type="range" id="currentSlider" class="ticks" />
+  <div class="label-row">
+    <span>1960-01</span>
+    <span id="currentLabel"></span>
+    <span>2023-09</span>
+  </div>
+
+  <h3 style="margin-top:30px">预测盐度时间</h3>
+  <input type="range" id="predictSlider" class="ticks" />
+  <div class="label-row">
+    <span>2020-02</span>
+    <span id="predictLabel"></span>
+    <span>2024-08</span>
+  </div>
+
+  <button id="playBtn"><i class="fa-solid fa-play"></i></button>
+
+  <div class="container">
+    <div class="panel">
+      <h3>现有盐度图</h3>
+      <img id="currentImg" />
+    </div>
+    <div class="panel">
+      <h3>预测盐度图</h3>
+      <div style="margin-bottom:8px">
+        <label for="modelSelect">预测模型：</label>
+        <select id="modelSelect">
+          <option value="ConvLSTM">ConvLSTM模型</option>
+          <option value="CNN_TCN">CNN-TCN模型</option>
+        </select>
+      </div>
+      <img id="predictImg" />
+    </div>
+  </div>
+
+  <input type="month" id="monthPicker" min="1960-01" max="2023-09" />
+
+  <!-- ================== 展示内容选择 ================== -->
+  <div style="margin-top:20px; text-align:center;">
+    <label for="displaySelect" style="font-size:14px;">展示内容：</label>
+    <select id="displaySelect">
+      <option value="curve">典型格点时间序列</option>
+      <option value="metric">模型误差与训练指标</option>
+    </select>
+  </div>
+
+  <!-- ================== 误差与训练稳定性指标 ================== -->
+  <div class="metric-container" id="metricSection">
+    <h4>模型误差与训练稳定性指标</h4>
+    <div style="text-align:center; margin-bottom:8px;">
+      <label for="metricModelSelect" style="font-size:13px;">评估模型：</label>
+      <select id="metricModelSelect">
+        <option value="ConvLSTM">ConvLSTM</option>
+        <option value="CNN_TCN">CNN-TCN</option>
+        <option value="LGBM">LightGBM</option>
+      </select>
+    </div>
+    <div class="metric-grid">
+      <div class="metric-item">
+        <span>MAE</span>
+        <img id="metric-mae" class="metric-img" />
+      </div>
+
+      <div class="metric-item">
+        <span>RMSE</span>
+        <img id="metric-rmse" class="metric-img" />
+      </div>
+
+      <div class="metric-item">
+        <span>Train Loss</span>
+        <img id="metric-train" class="metric-img" />
+      </div>
+
+      <div class="metric-item">
+        <span>Val Loss</span>
+        <img id="metric-val" class="metric-img" />
+      </div>
+    </div>
+    <p class="metric-note">
+      MAE 和 RMSE 反映的是模型在整体数值层面的误差水平。
+      从结果来看，各模型误差处于同一量级，说明模型在数值预测上是稳定的。<br>
+      但这类指标并不能反映时间波动结构是否被保留，
+      因此我们进一步通过<strong>时间序列对比分析</strong>模型的<strong>波动捕捉能力</strong>。
+    </p>
+  </div>
+
+  <!-- ================== 曲线图展示区 ================== -->
+  <div class="curve-container" id="curveSection">
+    <h4>典型格点盐度时间序列</h4>
+    <div class="curve-grid">
+      <img src="images/curves/curve_1.png" alt="曲线1">
+      <img src="images/curves/curve_2.png" alt="曲线2">
+      <img src="images/curves/curve_3.png" alt="曲线3">
+      <img src="images/curves/curve_4.png" alt="曲线4">
+    </div>
+  </div>
+
+  <div class="conclusion-section">
+    <h2><i class="fa-solid fa-square-poll-vertical"></i> 多模型对比实验结论：盐度波动捕捉能力评估</h2>
+
+    <div class="conclusion-grid">
+      <div class="conclusion-card highlight">
+        <div class="card-header">
+          <i class="fa-solid fa-crown"></i>
+          <span>ConvLSTM：非线性波动表征</span>
+        </div>
+        <div class="card-body">
+          <p><strong>分析：</strong>通过<strong>时空耦合建模</strong>，在卷积操作中显式保留空间梯度信息，并利用门控循环结构刻画时间依赖性。</p>
+          <p>
+            <strong>波动表现：</strong>准确重建了盐度的<strong>振幅结构</strong>与<strong>相位演化</strong>。对由平流、扩散及混合过程驱动的非线性演化具有极高的<strong>信号保真度</strong>。
+          </p>
+        </div>
+      </div>
+
+      <div class="conclusion-card">
+        <div class="card-header">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>CNN-TCN & LightGBM：波动衰减与信息丢失</span>
+        </div>
+        <div class="card-body">
+          <p><strong>LightGBM：</strong>本质为点值回归。在 RMSE 目标函数引导下产生<strong>均值回归倾向</strong>，虽整体误差最优，但系统性削弱了对极值事件的刻画能力。</p>
+          <p><strong>CNN-TCN：</strong>多层时间卷积产生显著的<strong>低通滤波</strong>效应，模型偏向于保留低频背景态，而将中高频物理波动视为噪声加以抑制。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="one-liner">
+      <i class="fa-solid fa-lightbulb"></i>
+      <span>
+        <strong>核心结论：</strong><br>从时间序列结构来看，ConvLSTM 能够有效保持盐度变化的振幅与相位特征，而 CNN-TCN 与 LightGBM
+        的预测结果则存在显著的<strong>高频衰减与波动压缩</strong>现象，难以真实反映盐度的动态演化过程。
+      </span>
+    </div>
+  </div>
+
+  <script>
+    function generateDates(start, end) {
+      const list = [];
+      let cur = new Date(start);
+      const last = new Date(end);
+      while (cur <= last) {
+        const y = cur.getFullYear();
+        const m = String(cur.getMonth() + 1).padStart(2, "0");
+        list.push(`${y}-${m}`);
+        cur.setMonth(cur.getMonth() + 1);
+      }
+      return list;
+    }
+
+    const currentDates = generateDates("1960-01", "2023-09");
+    const predictDates = generateDates("2020-02", "2024-08");
+
+    const currentSlider = document.getElementById("currentSlider");
+    const predictSlider = document.getElementById("predictSlider");
+    const currentLabel = document.getElementById("currentLabel");
+    const predictLabel = document.getElementById("predictLabel");
+    const currentImg = document.getElementById("currentImg");
+    const predictImg = document.getElementById("predictImg");
+    const playBtn = document.getElementById("playBtn");
+    const playIcon = playBtn.querySelector("i");
+    const monthPicker = document.getElementById("monthPicker");
+
+    currentSlider.max = currentDates.length - 1;
+    predictSlider.max = predictDates.length - 1;
+    currentSlider.style.setProperty("--steps", currentDates.length - 1);
+    predictSlider.style.setProperty("--steps", predictDates.length - 1);
+
+    function findCurrentIndex(pDate) {
+      for (let i = currentDates.length - 1; i >= 0; i--) {
+        if (currentDates[i] <= pDate) return i;
+      }
+      return 0;
+    }
+
+    function updateCurrent(idx) {
+      const t = currentDates[idx];
+      currentLabel.textContent = t;
+      currentImg.src = `images/current/salinity_${t}.png`;
+    }
+
+    function updatePredict(idx) {
+      const t = predictDates[idx];
+      predictLabel.textContent = t;
+
+      const model = predictModels[currentPredictModel];
+
+      // 如果时间早于该模型的起始时间
+      if (t < model.start) {
+        predictImg.src = "";
+        predictImg.alt = "该时间无预测结果";
+        predictImg.style.opacity = 0.3;
+        return;
+      }
+
+      predictImg.style.opacity = 1;
+      predictImg.src = `${model.dir}/${model.prefix}${t}.png`;
+    }
+
+
+    predictSlider.addEventListener("input", () => {
+      const pIdx = +predictSlider.value;
+      updatePredict(pIdx);
+      const cIdx = findCurrentIndex(predictDates[pIdx]);
+      currentSlider.value = cIdx;
+      updateCurrent(cIdx);
+    });
+
+    currentSlider.addEventListener("input", () => {
+      updateCurrent(+currentSlider.value);
+    });
+
+    monthPicker.addEventListener("change", () => {
+      const val = monthPicker.value;
+      const cIdx = currentDates.indexOf(val);
+
+      if (cIdx === -1) return;
+
+      currentSlider.value = cIdx;
+      updateCurrent(cIdx);
+
+      const pIdx = predictDates.indexOf(val);
+      if (pIdx !== -1) {
+        predictSlider.value = pIdx;
+        updatePredict(pIdx);
+      }
+    });
+
+
+    let timer = null;
+    playBtn.addEventListener("click", () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        playIcon.className = "fa-solid fa-play";
+        return;
+      }
+      playIcon.className = "fa-solid fa-pause";
+      timer = setInterval(() => {
+        let v = (+predictSlider.value + 1) % predictDates.length;
+        predictSlider.value = v;
+        updatePredict(v);
+        const cIdx = findCurrentIndex(predictDates[v]);
+        currentSlider.value = cIdx;
+        updateCurrent(cIdx);
+      }, 300);
+    });
+
+    predictSlider.value = 0;
+    const initC = findCurrentIndex(predictDates[0]);
+    currentSlider.value = initC;
+
+    const predictModels = {
+      ConvLSTM: {
+        dir: "images/predict_0",
+        prefix: "prediction_",
+        start: "2020-02"
+      },
+      CNN_TCN: {
+        dir: "images/predict_tcn",
+        prefix: "pred_",
+        start: "2021-01"
+      }
+    };
+    let currentPredictModel = "ConvLSTM";
+
+    const modelSelect = document.getElementById("modelSelect");
+
+    modelSelect.addEventListener("change", () => {
+      currentPredictModel = modelSelect.value;
+      const model = predictModels[currentPredictModel];
+
+      // 找到起始索引
+      const startIdx = predictDates.indexOf(model.start);
+      const endIdx = predictDates.length - 1;
+
+      // 动态调整 predictSlider 范围
+      predictSlider.min = startIdx;
+      predictSlider.max = endIdx;
+      predictSlider.style.setProperty("--steps", endIdx - startIdx);
+
+      // 更新时间条两端标签
+      const labelRow = predictSlider.nextElementSibling; // label-row div
+      labelRow.children[0].textContent = model.start;  // 左端
+      labelRow.children[2].textContent = predictDates[endIdx]; // 右端
+
+      // 如果当前值小于 startIdx，强制跳到 startIdx
+      if (+predictSlider.value < startIdx) {
+        predictSlider.value = startIdx;
+      }
+
+      updatePredict(+predictSlider.value);
+
+      // 同步 current
+      const cIdx = findCurrentIndex(predictDates[predictSlider.value]);
+      currentSlider.value = cIdx;
+      updateCurrent(cIdx);
+    });
+
+    updatePredict(0);
+    updateCurrent(initC);
+
+    /* ================== 误差指标配置 ================== */
+    const metricModelSelect = document.getElementById("metricModelSelect");
+    const metricImgs = document.querySelectorAll(".metric-img");
+
+    const metricImageMap = {
+      ConvLSTM: {
+        mae: "images/metrics/ConvLSTM/mae.png",
+        rmse: "images/metrics/ConvLSTM/rmse.png",
+        train: "images/metrics/ConvLSTM/train_loss.png",
+        val: "images/metrics/ConvLSTM/val_loss.png"
+      },
+      CNN_TCN: {
+        mae: "images/metrics/CNN_TCN/mae.png",
+        rmse: "images/metrics/CNN_TCN/rmse.png",
+        train: "images/metrics/CNN_TCN/train_loss.png",
+        val: "images/metrics/CNN_TCN/val_loss.png"
+      },
+      LGBM: {
+        mae: "images/metrics/LGBM/mae.png",
+        rmse: "images/metrics/LGBM/rmse.png",
+        train: null,
+        val: null
+      }
+    };
+
+    function updateMetricSection(model) {
+      const cfg = metricImageMap[model];
+
+      const items = [
+        { key: "mae", el: document.getElementById("metric-mae"), label: "MAE" },
+        { key: "rmse", el: document.getElementById("metric-rmse"), label: "RMSE" },
+        { key: "train", el: document.getElementById("metric-train"), label: "Train Loss" },
+        { key: "val", el: document.getElementById("metric-val"), label: "Val Loss" }
+      ];
+
+      items.forEach(item => {
+        const img = item.el;
+        const parent = img.parentElement;
+        const path = cfg[item.key];
+
+        // 清理旧的占位文字
+        const oldPlaceholder = parent.querySelector(".metric-placeholder");
+        if (oldPlaceholder) oldPlaceholder.remove();
+
+        if (path) {
+          // 有图：显示图片
+          img.src = path;
+          img.style.display = "block";
+        } else {
+          // 无图：隐藏 img，显示文字提示
+          img.style.display = "none";
+
+          const placeholder = document.createElement("div");
+          placeholder.className = "metric-placeholder";
+          placeholder.innerHTML =
+            "该模型不涉及<br><strong>训练过程损失曲线</strong>";
+
+          parent.appendChild(placeholder);
+        }
+      });
+
+      /* ConvLSTM 单独压缩 */
+      document.querySelectorAll(".metric-img").forEach(img => {
+        img.classList.remove("conv");
+      });
+
+      if (model === "ConvLSTM") {
+        document.querySelectorAll(".metric-img").forEach(img => {
+          img.classList.add("conv");
+        });
+      }
+    }
+
+    metricModelSelect.addEventListener("change", () => {
+      updateMetricSection(metricModelSelect.value);
+    });
+
+    // 页面初始化（默认 ConvLSTM）
+    updateMetricSection(metricModelSelect.value);
+
+
+    /* ================== 展示内容切换 ================== */
+    const displaySelect = document.getElementById("displaySelect");
+    const curveSection = document.getElementById("curveSection");
+    const metricSection = document.getElementById("metricSection");
+
+    // 默认：显示曲线，隐藏指标
+    curveSection.style.display = "block";
+    metricSection.style.display = "none";
+
+    displaySelect.addEventListener("change", () => {
+      if (displaySelect.value === "curve") {
+        curveSection.style.display = "block";
+        metricSection.style.display = "none";
+      } else {
+        curveSection.style.display = "none";
+        metricSection.style.display = "block";
+      }
+    });
+
+  </script>
+
+</body>
+
+</html>
